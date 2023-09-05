@@ -49,13 +49,13 @@ jobs:
         with:
           cosign-release: 'v2.2.0'
       - name: Sign the container image
-        run: cosign sign --yes ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+        run: cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
       - name: Create SBOM
         uses: aquasecurity/trivy-action@e5f43133f6e8736992c9f3c1b3296e24b37e17f2 # ratchet:aquasecurity/trivy-action@master
         with:
           scan-type: 'image'
           format: 'cyclonedx'
           output: 'cyclone.sbom.json'
-          image-ref: ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+          image-ref: ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
       - name: Attest image
-        run: cosign attest --yes --predicate cyclone.sbom.json --type cyclonedx ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+        run: cosign attest --yes --predicate cyclone.sbom.json --type cyclonedx ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
