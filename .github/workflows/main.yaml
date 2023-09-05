@@ -12,6 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     permissions:
+      id-token: write
+      packages: write
       contents: read
     steps:
       - name: Checkout latest code
@@ -38,7 +40,22 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           pull: true
-          push: false
+          push: true
           tags: ${{ steps.dockertag.outputs.img_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Install cosign
+        uses: sigstore/cosign-installer@4a861528be5e691840a69536975ada1d4c30349d # ratchet:sigstore/cosign-installer@main
+        with:
+          cosign-release: 'v2.2.0'
+      - name: Sign the container image
+        run: cosign sign --yes ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+      - name: Create SBOM
+        uses: aquasecurity/trivy-action@e5f43133f6e8736992c9f3c1b3296e24b37e17f2 # ratchet:aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          format: 'cyclonedx'
+          output: 'cyclone.sbom.json'
+          image-ref: ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+      - name: Attest image
+        run: cosign attest --yes --predicate cyclone.sbom.json --type cyclonedx ttl.sh/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
